@@ -1,5 +1,5 @@
 import matplotlib
-#matplotlib.use('Qt5Agg')
+matplotlib.use('Qt5Agg')
 import pandas as pd
 import numpy as np
 import yfinance as yf
@@ -290,12 +290,14 @@ class BSM:
         self.ticker._download_options()
         expirations = list(self.ticker._expirations.keys())
 
+        S = yf.download(tickers=self.asset, period="1d", auto_adjust=True)["Close"].iloc[-1].iloc[0]
+
         if len(expirations) == 0:
             print("OPTIONS DATA UNAVAILABLE...")
-            # return None
+            return None
 
         DTEs = []
-        STRIKEs = []
+        MONEYNESS = []
         IVs = []
 
         for i in range(len(expirations)):
@@ -313,7 +315,7 @@ class BSM:
                     STRIKE = calls["strike"].iloc[j]
                     IV = calls["impliedVolatility"].iloc[j]
 
-                    STRIKEs.append(STRIKE)
+                    MONEYNESS.append(S / STRIKE)
                     DTEs.append((EXP - dt.date.today()).days)
                     IVs.append(IV)
 
@@ -322,20 +324,20 @@ class BSM:
                     STRIKE = puts["strike"].iloc[j]
                     IV = puts["impliedVolatility"].iloc[j]
 
-                    STRIKEs.append(STRIKE)
+                    MONEYNESS.append(S / STRIKE)
                     DTEs.append((EXP - dt.date.today()).days)
                     IVs.append(IV)
 
-        df = pd.DataFrame(data={'Strike': STRIKEs, 'DTE': DTEs, 'IV': IVs})
+        df = pd.DataFrame(data={'MONEYNESS': MONEYNESS, 'DTE': DTEs, 'IV': IVs})
         df = df[(df['IV'] > 0) & (df['IV'] < 5)]
 
-        xi = np.linspace(df['Strike'].min(), df['Strike'].max(), 60)
-        yi = np.linspace(df['DTE'].min(), df['DTE'].max(), 60)
+        xi = np.linspace(df['MONEYNESS'].min(), df['MONEYNESS'].max(), 80)
+        yi = np.linspace(df['DTE'].min(), df['DTE'].max(), 80)
 
         X, Y = np.meshgrid(xi, yi)
 
         # Interpolate unstructured data onto the grid
-        Z = griddata((df['Strike'], df['DTE']), df['IV'], (X, Y), method='linear')
+        Z = griddata((df['MONEYNESS'], df['DTE']), df['IV'], (X, Y), method='linear')
 
         fig = plt.figure(figsize=(12, 8))
         ax = fig.add_subplot(111, projection='3d')
@@ -346,7 +348,7 @@ class BSM:
         ax.zaxis.set_major_locator(LinearLocator(10))
         ax.zaxis.set_major_formatter('{x:.02f}')
 
-        ax.set_xlabel('Strike', fontsize=11)
+        ax.set_xlabel('Moneyness (S/K)', fontsize=11)
         ax.set_ylabel('Days to Expiration', fontsize=11)
         ax.set_zlabel('Implied Volatility', fontsize=11)
         ax.set_title(f'{self.asset} Implied Volatility Surface from {df.shape[0]} options', fontsize=13)
