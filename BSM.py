@@ -1,5 +1,5 @@
 import matplotlib
-matplotlib.use('Qt5Agg')
+#matplotlib.use('Qt5Agg')
 import pandas as pd
 import numpy as np
 import yfinance as yf
@@ -110,6 +110,67 @@ class BSM:
         plt.legend()
         plt.show()
         return None
+
+    def monte_carlo_sim(self, SIMS = 400, K = 250, t = 60) -> None:
+        values = []
+        STRIKE = K
+        STOCK = yf.download(tickers=self.asset, period="10y", auto_adjust=True)["Close"]
+        STOCK["LOG CHANGE"] = np.log(STOCK / STOCK.shift(1))
+        STOCK.columns = ["CLOSE", "LOG CHANGE"]
+
+        STOCK.dropna(axis=0, inplace=True)
+        log_mean = STOCK["LOG CHANGE"].mean()
+        log_std = STOCK["LOG CHANGE"].std(ddof=1)
+        start_price = STOCK["CLOSE"].iloc[-1]
+
+        for i in range(SIMS):
+            time = [0]
+            stock_prices = [start_price]
+
+            for i in range(0, t):
+                price_change = scipy.stats.t.rvs(df=5, loc=log_mean, scale=log_std)
+                next_stock_price = stock_prices[-1] * np.exp(price_change)
+                stock_prices.append(next_stock_price)
+                time.append(i)
+
+            diff = stock_prices[-1] - STRIKE
+            value = 0 if (diff < 0) else diff
+
+            values.append(value)
+            sns.lineplot(data=stock_prices, dashes=False, legend=False, c = 'g' if value else 'r')
+
+        plt.xlabel("DAYS")
+        plt.ylabel("PRICE / VALUE ($)")
+        plt.title(f"MC {self.asset} VS. STRIKE WITH {SIMS} SIMS")
+        plt.hlines(y=STRIKE, colors='k', xmin=0, xmax=t, label="STRIKE")
+        plt.legend()
+        plt.show()
+
+        print()
+
+        EX = pd.Series(values).mean()
+        print(f'EXPECTED VALUE OF OPTION PRICE: ${EX:.3f}')
+        sns.histplot(data=values, color='m', bins=50)
+        plt.axvline(x = EX, c = 'r')
+        plt.title(f"DISTRIBUTION OF OPTION RETURNS AT EXPIRY")
+        plt.ylabel("COUNT")
+        plt.xlabel("FINAL RETURN")
+        plt.text(
+            x= EX + 20,
+            y= SIMS / 2,
+            s=f"E[X] = ${EX:.3F}",
+            fontsize=12,
+            color='black',
+            # Bbox properties for the border
+            bbox=dict(
+                facecolor='lightyellow',  # Background color of the box
+                alpha=0.7,  # Transparency
+                edgecolor='black',  # Border color
+                boxstyle='round,pad=0.8'  # Box style (optional: 'round', 'square', etc.)
+            )
+        )
+        plt.legend()
+        plt.show()
 
     def black_scholes_calls(self) -> None:
         # STOCK DATA
@@ -288,7 +349,7 @@ class BSM:
         ax.set_xlabel('Strike', fontsize=11)
         ax.set_ylabel('Days to Expiration', fontsize=11)
         ax.set_zlabel('Implied Volatility', fontsize=11)
-        ax.set_title(f'{self.asset} Implied Volatility Surface from {df.shape[0]} OPTIONS', fontsize=13)
+        ax.set_title(f'{self.asset} Implied Volatility Surface from {df.shape[0]} options', fontsize=13)
 
         fig.colorbar(surf)
         plt.show()

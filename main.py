@@ -15,11 +15,15 @@ def print_menu():
     print('3. VISUALISE WHAT BSM MODEL THINKS ABOUT ALL CURRENT STOCK OPTIONS ON THE MARKET')
     print(' -> Input an option type and generate a bar chart to see counts of overvalued vs. undervalued options according to BSM model.\n')
 
+    #BSM.monte_carlo_sim()
+    print('4. GENERATE MONTE CARLO SIMULATION AND VIEW INFERRED PRICE')
+    print(' -> Input a strike price, simulation amount, and time to expiry and see price vs strike paths and then distribution of P/L.\n')
+
     # BSM.implied_vol_surface()
-    print('4. GENERATE IMPLIED VOLATILITY SURFACE')
+    print('5. GENERATE IMPLIED VOLATILITY SURFACE')
     print(' -> Generate an implied volatility surface from all call and put options data for the stock on the market.\n')
 
-    print('5. EXIT PROGRAM')
+    print('0. EXIT PROGRAM')
     print('|--------------------------------------------------------------------------------------------------------------------------------|\n')
 
 if __name__ == '__main__':
@@ -69,7 +73,7 @@ if __name__ == '__main__':
                 asset.stock_option_evolution(TYPE, STRIKE, TIME_TO_EXPIRY)
 
             except:
-                print('INVALID INPUT...\n')
+                print('INVALID NUMERICAL INPUT...\n')
 
         elif choice == 3:
             TYPES = ['CALL', 'PUT']
@@ -85,8 +89,18 @@ if __name__ == '__main__':
                 asset.black_scholes_puts()
 
         elif choice == 4:
-            asset.implied_vol_surface()
+            try:
+                STRIKE = int(input('STRIKE (K): $'))
+                SIMS = int(input('SIMS: '))
+                TIME_TO_EXPIRY = int(input('TIME TO EXPIRY: '))
+                asset.monte_carlo_sim(SIMS, STRIKE, TIME_TO_EXPIRY)
+
+            except:
+                print('INVALID NUMERICAL INPUT...')
 
         elif choice == 5:
+            asset.implied_vol_surface()
+
+        elif choice == 0:
             print('GOODBYE!')
             break
