@@ -17,6 +17,7 @@ warnings.filterwarnings('ignore')
 class BSM:
     def __init__(self, asset):
         self.asset = asset
+        self.ticker = yf.Ticker(asset)
 
     def black_scholes_price(self, TYPE="CALL", S=100, K=100, r=0.05, t=0.4, s=0.01) -> float:
         d1 = (np.log(S / K) + t * (r + (s ** 2) / 2)) / (s * np.sqrt(t))
@@ -30,6 +31,35 @@ class BSM:
             price = K * np.exp(-r * t) * scipy.stats.norm.cdf(x=-d2) - S * scipy.stats.norm.cdf(x=-d1)
 
         return price
+
+    def price_simulator(self, TYPE="CALL", quote = 15, K=100, t=60) -> None:
+        STOCK = yf.download(tickers=self.asset, period="10y", auto_adjust=True)["Close"]
+        STOCK["LOG CHANGE"] = np.log(STOCK / STOCK.shift(1))
+        STOCK.columns = ["CLOSE", "LOG CHANGE"]
+
+        STOCK.dropna(axis=0, inplace=True)
+        log_std = STOCK["LOG CHANGE"].std(ddof=1)
+        annual_std = log_std * np.sqrt(252)
+
+        # IMPORT CURRENT YIELD ON 10 YEAR T-BOND
+        R = yf.download(tickers="^TNX", period="1d", auto_adjust=True).Close.iloc[-1].iloc[0] / 100
+        DTE = (t + 1) / 365
+
+        S = STOCK["CLOSE"].iloc[-1]
+
+        bsm_price = self.black_scholes_price(TYPE, S, K, R, DTE, annual_std)
+
+        diff = abs(quote - bsm_price)
+
+        print(f"QUOTE = ${quote:.3f}")
+        print(f"BSM = ${bsm_price:.3f}")
+
+        if bsm_price > quote:
+            print(f"BSM MODEL SAYS {TYPE} OPTION IS UNDERVALUED BY ${diff:.3f}")
+        else:
+            print(f"BSM MODEL SAYS {TYPE} OPTION IS OVERVALUED BY ${diff:.3f}")
+
+        return None
 
     def stock_option_evolution(self, TYPE = "CALL", K = 250, t = 60) -> None:
         STOCK = yf.download(tickers=self.asset, period="10y", auto_adjust=True)["Close"]
@@ -81,55 +111,6 @@ class BSM:
         plt.show()
         return None
 
-    def black_scholes_individual(self) -> None:
-        # STOCK DATA
-        STOCK = yf.download(tickers = self.asset, period="10y", auto_adjust=True)["Close"]
-        STOCK["LOG CHANGE"] = np.log(STOCK / STOCK.shift(1))
-        STOCK.columns = ["CLOSE", "LOG CHANGE"]
-        STOCK.dropna(axis=0, inplace=True)
-
-        log_mean = STOCK["LOG CHANGE"].mean()
-        log_std = STOCK["LOG CHANGE"].std(ddof=1)
-
-        # IMPORT CURRENT YIELD ON 10 YEAR T-BOND FOR RISK-FREE RATE
-        R = yf.download(tickers="^TNX", period="1d", auto_adjust=True).Close.iloc[-1].iloc[0] / 100
-
-        # OPTIONS DATA
-        TICKER = yf.Ticker(ticker=self.asset)
-        TICKER._download_options()
-        expirations = list(TICKER._expirations.keys())
-
-        if len(expirations) == 0:
-            print("OPTIONS DATA UNAVAILABLE...")
-            return None
-
-        soonest_date = expirations[-1]
-        calls = TICKER.option_chain(date=soonest_date).calls
-        liquid_calls = calls.loc[calls['volume'] > 0]
-
-        if len(liquid_calls) == 0:
-            print("NO LIQUID OPTIONS AVAILABLE...")
-            return None
-
-        expiry_date = dt.date(int(soonest_date[0:4]), int(soonest_date[5:7]), int(soonest_date[8:]))
-        VOL = log_std * np.sqrt(252)
-        DTE = (expiry_date - dt.date.today()).days
-        STRIKE = liquid_calls["strike"].iloc[0]
-        S_0 = STOCK["CLOSE"].iloc[-1]
-
-        QUOTE_PRICE = (liquid_calls["bid"].iloc[0] + liquid_calls["ask"].iloc[0]) / 2
-        BSM_PRICE = self.black_scholes_price(TYPE = "CALL", S = S_0, K = STRIKE, r = R, t = DTE, s = VOL)
-
-        print(f"QUOTE = ${QUOTE_PRICE:.3f}")
-        print(f"BSM = ${BSM_PRICE:.3f}")
-
-        if BSM_PRICE > QUOTE_PRICE:
-            print("BSM says option is ...undervalued...")
-        else:
-            print("BSM says option is ...overvalues...")
-
-        return None
-
     def black_scholes_calls(self) -> None:
         # STOCK DATA
         STOCK = yf.download(tickers=self.asset, period="10y", auto_adjust=True)["Close"]
@@ -143,9 +124,8 @@ class BSM:
         R = yf.download(tickers="^TNX", period="1d", auto_adjust=True).Close.iloc[-1].iloc[0] / 100
 
         # OPTIONS DATA
-        TICKER = yf.Ticker(ticker=self.asset)
-        TICKER._download_options()
-        expirations = list(TICKER._expirations.keys())
+        self.ticker._download_options()
+        expirations = list(self.ticker._expirations.keys())
 
         if len(expirations) == 0:
             print("OPTIONS DATA UNAVAILABLE...")
@@ -160,7 +140,7 @@ class BSM:
 
         for i in range(len(expirations)):
             expiration_date = expirations[i]
-            calls = TICKER.option_chain(date=expiration_date).calls
+            calls = self.ticker.option_chain(date=expiration_date).calls
             calls = calls.loc[calls['volume'] > 0]
 
             if len(calls) == 0:
@@ -201,9 +181,8 @@ class BSM:
         R = yf.download(tickers="^TNX", period="1d", auto_adjust=True).Close.iloc[-1].iloc[0] / 100
 
         # OPTIONS DATA
-        TICKER = yf.Ticker(ticker=self.asset)
-        TICKER._download_options()
-        expirations = list(TICKER._expirations.keys())
+        self.ticker._download_options()
+        expirations = list(self.ticker._expirations.keys())
 
         if len(expirations) == 0:
             print("OPTIONS DATA UNAVAILABLE...")
@@ -218,7 +197,7 @@ class BSM:
 
         for i in range(len(expirations)):
             expiration_date = expirations[i]
-            puts = TICKER.option_chain(date=expiration_date).puts
+            puts = self.ticker.option_chain(date=expiration_date).puts
             puts = puts.loc[puts['volume'] > 0]
 
             if len(puts) == 0:
@@ -247,9 +226,8 @@ class BSM:
         return None
 
     def implied_vol_surface(self) -> None:
-        TICKER = yf.Ticker(ticker=self.asset)
-        TICKER._download_options()
-        expirations = list(TICKER._expirations.keys())
+        self.ticker._download_options()
+        expirations = list(self.ticker._expirations.keys())
 
         if len(expirations) == 0:
             print("OPTIONS DATA UNAVAILABLE...")
@@ -263,10 +241,10 @@ class BSM:
             EXP = dt.date(int(expirations[i][0:4]), int(expirations[i][5:7]), int(expirations[i][8:]))
             expiration_date = expirations[i]
 
-            calls = TICKER.option_chain(date=expiration_date).calls
+            calls = self.ticker.option_chain(date=expiration_date).calls
             calls = calls.loc[calls['volume'] > 0]
 
-            puts = TICKER.option_chain(date=expiration_date).puts
+            puts = self.ticker.option_chain(date=expiration_date).puts
             puts = puts.loc[puts['volume'] > 0]
 
             if calls.shape[0] != 0:
