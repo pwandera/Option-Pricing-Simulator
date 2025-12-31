@@ -5,6 +5,7 @@ import numpy as np
 import yfinance as yf
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import scipy
 from scipy.interpolate import griddata
 from matplotlib import cm
@@ -149,27 +150,14 @@ class BSM:
         print()
 
         EX = pd.Series(values).mean()
-        print(f'EXPECTED VALUE OF OPTION PRICE: ${EX:.3f}')
         sns.histplot(data=values, color='m', bins=50)
         plt.axvline(x = EX, c = 'r')
         plt.title(f"DISTRIBUTION OF OPTION RETURNS AT EXPIRY")
         plt.ylabel("COUNT")
         plt.xlabel("FINAL RETURN")
-        plt.text(
-            x= EX + 20,
-            y= SIMS / 2,
-            s=f"E[X] = ${EX:.3F}",
-            fontsize=12,
-            color='black',
-            # Bbox properties for the border
-            bbox=dict(
-                facecolor='lightyellow',  # Background color of the box
-                alpha=0.7,  # Transparency
-                edgecolor='black',  # Border color
-                boxstyle='round,pad=0.8'  # Box style (optional: 'round', 'square', etc.)
-            )
-        )
-        plt.legend()
+
+        red_patch = mpatches.Patch(color='red', label=f"E[OPTION VALUE] = ${EX:.3F}")
+        plt.legend(handles = [red_patch])
         plt.show()
 
     def black_scholes_calls(self) -> None:
@@ -349,8 +337,8 @@ class BSM:
         ax.zaxis.set_major_formatter('{x:.02f}')
 
         ax.set_xlabel('Moneyness (S/K)', fontsize=11)
-        ax.set_ylabel('Days to Expiration', fontsize=11)
-        ax.set_zlabel('Implied Volatility', fontsize=11)
+        ax.set_ylabel('Days to Expiration (T)', fontsize=11)
+        ax.set_zlabel('Implied Volatility (σ)', fontsize=11)
         ax.set_title(f'{self.asset} Implied Volatility Surface from {df.shape[0]} options', fontsize=13)
 
         fig.colorbar(surf)
