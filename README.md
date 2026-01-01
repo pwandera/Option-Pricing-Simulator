@@ -1,4 +1,4 @@
-# Option-Pricing-Simulator
+# Option Pricing Simulator
 
 This project provides a Python-based framework for analyzing equity options using the ***Black-Scholes-Merton*** model. It leverages live market data from Yahoo Finance to calculate theoretical option prices, visualize implied volatility surfaces, and simulate the profit/loss evolution of holding an option over time.
 
