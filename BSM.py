@@ -51,7 +51,7 @@ class BSM:
         bsm_price = self.black_scholes_price(TYPE, S, K, R, DTE, annual_std)
 
         diff = abs(quote - bsm_price)
-
+        print(f"\nCURRENT STOCK PRICE: ${S:.3f}")
         print(f"QUOTE = ${quote:.3f}")
         print(f"BSM = ${bsm_price:.3f}")
 

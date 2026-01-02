@@ -36,7 +36,7 @@ if __name__ == '__main__':
     while True:
 
         try:
-            choice = int(input('ENTER CHOICE: '))
+            choice = int(input('\nENTER CHOICE: '))
         except:
             print('INVALID CHOICE... TRY AGAIN.')
             continue
