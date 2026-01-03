@@ -33,7 +33,7 @@ $Φ(•)$ = Cumulative Distribution Function of a Standard Normal Random Variabl
 
 $$ \ln(S_T) \\sim \ N(S_0 + T(μ - \frac{\sigma^2}{2}), \sigma^2 T) $$  
 
-This implies a constant mean and variance. However, we can only estimate these parameters using historical data and these estimates change each time we measure them. We cannot capture their true valaues. 
+This implies a constant mean and variance. However, we can only estimate these parameters using historical data and these estimates change with time and thus change each time we measure them. We cannot capture their true values. 
 This fact is visualised when we observe Implied Volatility surfaces. Under the Black Scholes Model, these surfaces should be flat since volatility is assumed to be constant. 
 The IV surfaces tell a different story about what the market actually thinks of volatility into the future.  
 
@@ -49,4 +49,7 @@ The IV surfaces tell a different story about what the market actually thinks of 
 
 6. Security trading is continuous.
 
-7. The risk-free rate of interest, $r$, is constant and the same for all maturities.
+7. The risk-free rate of interest, $r$, is constant and the same for all maturities.  
+
+### References
+Hull, J. C. (2021). *Options, Futures, and Other Derivatives* (11th ed.). Pearson Educational Limited. Copyright.
