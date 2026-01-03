@@ -27,6 +27,7 @@ def print_menu():
     print('|--------------------------------------------------------------------------------------------------------------------------------|\n')
 
 if __name__ == '__main__':
+    TYPES = ['CALL', 'PUT']
     print('WELCOME TO THE BLACK-SCHOLES-MERTON OPTION PRICING SIMULATOR')
     ticker = input('ENTER STOCK/INDEX TICKER TO ANALYZE: ')
     asset = BSM(ticker)
@@ -60,13 +61,12 @@ if __name__ == '__main__':
                 print('INVALID NUMERICAL INPUT...\n')
 
         elif choice == 2:
-            TYPES = ['CALL', 'PUT']
-
             try:
                 TYPE = input('OPTION TYPE (CALL OR PUT): ')
 
                 if TYPE not in TYPES:
                     print('INVALID TYPE... TRY AGAIN')
+                    continue
 
                 STRIKE = int(input('STRIKE (K): $'))
                 TIME_TO_EXPIRY = int(input('TIME TO EXPIRY (T): '))
@@ -76,12 +76,12 @@ if __name__ == '__main__':
                 print('INVALID NUMERICAL INPUT...\n')
 
         elif choice == 3:
-            TYPES = ['CALL', 'PUT']
 
             TYPE = input('OPTION TYPE (CALL OR PUT): ')
 
             if TYPE not in TYPES:
                 print('INVALID TYPE... TRY AGAIN\n')
+                continue
 
             if TYPE == 'CALL':
                 asset.black_scholes_calls()
@@ -89,11 +89,17 @@ if __name__ == '__main__':
                 asset.black_scholes_puts()
 
         elif choice == 4:
+
+            TYPE = input('OPTION TYPE (CALL OR PUT): ')
+            if TYPE not in TYPES:
+                print('INVALID TYPE... TRY AGAIN\n')
+                continue
+
             try:
                 STRIKE = int(input('STRIKE (K): $'))
                 SIMS = int(input('SIMS: '))
                 TIME_TO_EXPIRY = int(input('TIME TO EXPIRY: '))
-                asset.monte_carlo_sim(SIMS, STRIKE, TIME_TO_EXPIRY)
+                asset.monte_carlo_sim(TYPE, SIMS, STRIKE, TIME_TO_EXPIRY)
 
             except:
                 print('INVALID NUMERICAL INPUT...')

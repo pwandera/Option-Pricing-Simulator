@@ -81,7 +81,7 @@ class BSM:
         time = [0]
         start_price = STOCK["CLOSE"].iloc[-1]
         stock_prices = [start_price]
-        call_prices = [self.black_scholes_price(TYPE, S = start_price, K = K, r = R, t = (DTE + 1) / 365, s = annual_std)]
+        option_prices = [self.black_scholes_price(TYPE, S = start_price, K = K, r = R, t = (DTE + 1) / 365, s = annual_std)]
         P_L = 0
 
         for i in range(1, DTE + 1):
@@ -92,14 +92,14 @@ class BSM:
             T = (DTE - i + 1) / 365
 
             call_price = self.black_scholes_price(TYPE, S = next_stock_price, K = K, r = R, t = T, s = annual_std)
-            call_prices.append(call_price)
+            option_prices.append(call_price)
             time.append(i)
 
             if i == DTE - 1:
                 P_L = next_stock_price - STRIKE
 
         print(f" -> P/L OF HOLDING {TYPE} OPTION: ${P_L:.3f}")
-        results = pd.DataFrame(index=time, data={"STOCK": stock_prices, "CALL": call_prices})
+        results = pd.DataFrame(index=time, data={"STOCK": stock_prices, f"{TYPE}": option_prices})
         sns.lineplot(data=results, dashes=False)
         plt.hlines(y=STRIKE, colors='m', xmin=0, xmax=DTE, label="STRIKE")
         plt.vlines(x=DTE, ymin=STRIKE if (stock_prices[-1] > STRIKE) else stock_prices[-1],
@@ -107,12 +107,12 @@ class BSM:
                    colors='g' if (stock_prices[-1] > STRIKE) else 'r', label="P/L")
         plt.xlabel("DAYS")
         plt.ylabel("PRICE ($)")
-        plt.title("STOCK-CALL PRICE EVOLUTION")
+        plt.title("STOCK-OPTION PRICE EVOLUTION")
         plt.legend()
         plt.show()
         return None
 
-    def monte_carlo_sim(self, SIMS = 400, K = 250, t = 60) -> None:
+    def monte_carlo_sim(self, TYPE = "CALL", SIMS = 400, K = 250, t = 60) -> None:
         values = []
         STRIKE = K
         STOCK = yf.download(tickers=self.asset, period="10y", auto_adjust=True)["Close"]
@@ -134,7 +134,7 @@ class BSM:
                 stock_prices.append(next_stock_price)
                 time.append(i)
 
-            diff = stock_prices[-1] - STRIKE
+            diff = stock_prices[-1] - STRIKE if (TYPE == "CALL") else STRIKE - stock_prices[-1]
             value = 0 if (diff < 0) else diff
 
             values.append(value)
@@ -152,11 +152,11 @@ class BSM:
         EX = pd.Series(values).mean()
         sns.histplot(data=values, color='m', bins=50)
         plt.axvline(x = EX, c = 'r')
-        plt.title(f"DISTRIBUTION OF OPTION RETURNS AT EXPIRY")
+        plt.title(f"DISTRIBUTION OF {TYPE} OPTION RETURNS AT EXPIRY")
         plt.ylabel("COUNT")
         plt.xlabel("FINAL RETURN")
 
-        red_patch = mpatches.Patch(color='red', label=f"E[OPTION VALUE] = ${EX:.3F}")
+        red_patch = mpatches.Patch(color='red', label=f"E[{TYPE} OPTION VALUE] = ${EX:.3F}")
         plt.legend(handles = [red_patch])
         plt.show()
 
