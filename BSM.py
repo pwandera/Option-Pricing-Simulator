@@ -284,6 +284,16 @@ class BSM:
             print("OPTIONS DATA UNAVAILABLE...")
             return None
 
+        R = yf.download(tickers="^TNX", period="1d", auto_adjust=True).Close.iloc[-1].iloc[0] / 100
+
+        def IV(TYPE, C, S, K, r, t):
+
+            def objective(sigma):
+                return (self.black_scholes_price(TYPE, S, K, r, t, sigma) - C) ** 2
+
+            implied_vol = scipy.optimize.minimize_scalar(objective, bounds=(0.00001, 10))
+            return implied_vol
+
         DTEs = []
         MONEYNESS = []
         IVs = []
@@ -301,26 +311,30 @@ class BSM:
             if calls.shape[0] != 0:
                 for j in range(calls.shape[0]):
                     STRIKE = calls["strike"].iloc[j]
-                    IV = calls["impliedVolatility"].iloc[j]
+                    PRICE = (calls['bid'].iloc[j] + calls['ask'].iloc[j]) / 2
+                    DTE = (EXP - dt.date.today()).days
+                    iv = IV(TYPE ="CALL", C = PRICE, S = S, K = STRIKE, r = R, t = DTE / 365).x
 
                     MONEYNESS.append(S / STRIKE)
-                    DTEs.append((EXP - dt.date.today()).days)
-                    IVs.append(IV)
+                    DTEs.append(DTE)
+                    IVs.append(iv)
 
             if puts.shape[0] != 0:
                 for j in range(puts.shape[0]):
                     STRIKE = puts["strike"].iloc[j]
-                    IV = puts["impliedVolatility"].iloc[j]
+                    PRICE = (puts['bid'].iloc[j] + puts['ask'].iloc[j]) / 2
+                    DTE = (EXP - dt.date.today()).days
+                    iv = IV(TYPE = "PUT", C = PRICE, S = S, K = STRIKE, r = R, t = DTE / 365).x
 
                     MONEYNESS.append(S / STRIKE)
-                    DTEs.append((EXP - dt.date.today()).days)
-                    IVs.append(IV)
+                    DTEs.append(DTE)
+                    IVs.append(iv)
 
         df = pd.DataFrame(data={'MONEYNESS': MONEYNESS, 'DTE': DTEs, 'IV': IVs})
-        df = df[(df['IV'] > 0) & (df['IV'] < 5)]
+        df = df[(df['IV'] > 0.01) & (df['IV'] < 10.0)]
 
-        xi = np.linspace(df['MONEYNESS'].min(), df['MONEYNESS'].max(), 80)
-        yi = np.linspace(df['DTE'].min(), df['DTE'].max(), 80)
+        xi = np.linspace(df['MONEYNESS'].min(), df['MONEYNESS'].max(), 60)
+        yi = np.linspace(df['DTE'].min(), df['DTE'].max(), 60)
 
         X, Y = np.meshgrid(xi, yi)
 
@@ -330,8 +344,7 @@ class BSM:
         fig = plt.figure(figsize=(12, 8))
         ax = fig.add_subplot(111, projection='3d')
 
-        surf = ax.plot_surface(X, Y, Z, cmap=cm.viridis,
-                               linewidth=0, antialiased=True)
+        surf = ax.plot_surface(X, Y, Z, cmap=cm.viridis, linewidth=0, antialiased=True)
 
         ax.zaxis.set_major_locator(LinearLocator(10))
         ax.zaxis.set_major_formatter('{x:.02f}')
